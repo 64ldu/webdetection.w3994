@@ -136,4 +136,6 @@ def handle_frame(data):
     emit('detection_result', result)
 
 if __name__ == '__main__':
-    socketio.run(app, debug=True, host='0.0.0.0', port=8080)
+    import os
+    port = int(os.environ.get('PORT', 8080))
+    socketio.run(app, debug=False, host='0.0.0.0', port=port)
