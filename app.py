@@ -120,6 +120,14 @@ face_ai = FaceAIWeb()
 def index():
     return render_template('index.html')
 
+@app.route('/health')
+def health_check():
+    return jsonify({
+        'status': 'healthy',
+        'service': 'Face AI Web',
+        'version': '1.0.0'
+    })
+
 @app.route('/api/detect', methods=['POST'])
 def detect_faces():
     data = request.json
