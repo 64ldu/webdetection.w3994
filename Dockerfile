@@ -11,9 +11,7 @@ RUN apt-get update && apt-get install -y \
     libfontconfig1 \
     libxss1 \
     libasound2 \
-    libxcb-xinerama0 \
-    libxcb-cursor0 \
-    libxkbcommon-x11-0 \
+    curl \
     && rm -rf /var/lib/apt/lists/*
 
 WORKDIR /app
