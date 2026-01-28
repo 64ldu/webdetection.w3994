@@ -43,7 +43,7 @@ class FaceAIWeb:
         return faces
     
     def analyze_expression(self, frame, face_bbox):
-        """Analyze facial expression"""
+        """Analyze facial expression with improved detection"""
         if face_bbox is None:
             return "No face detected", 0.0
         
@@ -55,25 +55,61 @@ class FaceAIWeb:
         
         # Extract features
         gray_face = cv2.cvtColor(face_roi, cv2.COLOR_BGR2GRAY)
-        eyes = self.eye_cascade.detectMultiScale(gray_face)
+        eyes = self.eye_cascade.detectMultiScale(gray_face, 1.1, 3)
         smiles = self.smile_cascade.detectMultiScale(gray_face, 1.8, 20)
         
-        # Rule-based expression detection
+        # Enhanced rule-based expression detection
+        confidence = 0.5
+        
+        # Check for smile (happy expression)
         if len(smiles) > 0:
-            return "Happy", 0.8
-        elif len(eyes) == 0:
-            return "Sleepy", 0.6
+            # Calculate smile intensity
+            smile_area = sum([sw * sh for (sx, sy, sw, sh) in smiles])
+            face_area = w * h
+            smile_ratio = smile_area / face_area
+            
+            if smile_ratio > 0.02:
+                return "Happy", 0.9
+            elif smile_ratio > 0.01:
+                return "Smiling", 0.8
+            else:
+                return "Happy", 0.7
+        
+        # Check for eyes
+        if len(eyes) == 0:
+            return "Sleepy", 0.8
         elif len(eyes) == 1:
             return "Winking", 0.7
-        else:
-            # Analyze eye openness for more expressions
-            eye_areas = [w*h for (ex, ey, ew, eh) in eyes]
+        
+        # Analyze eye openness and position for more expressions
+        if len(eyes) >= 2:
+            eye_areas = [ew * eh for (ex, ey, ew, eh) in eyes]
             avg_eye_area = np.mean(eye_areas) if eye_areas else 0
             
-            if avg_eye_area < 500:
-                return "Surprised", 0.6
+            # Calculate eye-to-face ratio
+            face_area = w * h
+            eyes_total_area = sum(eye_areas)
+            eyes_ratio = eyes_total_area / face_area
+            
+            if eyes_ratio > 0.05:
+                return "Surprised", 0.8
+            elif eyes_ratio < 0.02:
+                return "Tired", 0.7
             else:
-                return "Neutral", 0.5
+                # Check for frown by analyzing mouth shape
+                mouth_cascade = cv2.CascadeClassifier(cv2.data.haarcascades + 'haarcascade_smile.xml')
+                mouths = mouth_cascade.detectMultiScale(gray_face, 1.5, 15)
+                
+                if len(mouths) > 0:
+                    # Check mouth curvature
+                    for (mx, my, mw, mh) in mouths:
+                        # Simple curvature analysis
+                        if my > h * 0.6:  # Mouth is low on face
+                            return "Sad", 0.7
+                        elif my < h * 0.4:  # Mouth is high
+                            return "Angry", 0.7
+        
+        return "Neutral", 0.6
     
     def process_frame(self, image_data):
         """Process base64 image data and return results"""
